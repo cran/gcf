@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Yongze Song" />
+
+
+<title>The GCF workflow: from spatial variables to better predictions</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">The GCF workflow: from spatial variables to
+better predictions</h1>
+<h4 class="author">Yongze Song</h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#the-simulation-data" id="toc-the-simulation-data">The
+simulation data</a></li>
+<li><a href="#step-1-3-generate-the-gcf-variables" id="toc-step-1-3-generate-the-gcf-variables">Step 1-3: generate the GCF
+variables</a></li>
+<li><a href="#step-3b-select-stable-gcf-variables" id="toc-step-3b-select-stable-gcf-variables">Step 3b: select stable GCF
+variables</a></li>
+<li><a href="#does-gcf-improve-prediction-a-cross-validated-comparison" id="toc-does-gcf-improve-prediction-a-cross-validated-comparison">Does
+GCF improve prediction? A cross-validated comparison</a></li>
+<li><a href="#the-case-study-data" id="toc-the-case-study-data">The case
+study data</a></li>
+<li><a href="#reference" id="toc-reference">Reference</a></li>
+</ul>
+</div>
+
+<p>The generalized covariate field (GCF) method expands each spatial
+covariate into two complementary families of features – spatial-pattern
+features and neighbourhood-distribution features – and selects a stable
+subset of them for geospatial prediction. GCF is prediction-oriented
+feature construction: it enriches the covariate space rather than the
+model structure, and the selected variables feed any downstream
+regression learner.</p>
+<p>This vignette walks through the full workflow on the paper’s
+simulation data:</p>
+<ol style="list-style-type: decimal">
+<li>generate the GCF variables with <code>gcf_field()</code>;</li>
+<li>select a stable subset with <code>gcf_select()</code>;</li>
+<li>compare a machine-learning model fitted on the raw covariates
+against the same model fitted on the GCF variables, under both random
+and spatial-block cross-validation, using the external
+<strong>randomForest</strong> package (the learner adopted in the
+paper).</li>
+</ol>
+<p>To keep the build time of this vignette short, the selection uses B =
+10 stability resamples and reduced tree counts; the paper’s full
+settings are B = 80 resamples with 200-tree importance kernels and
+500-tree final forests, and give the same qualitative conclusions.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(gcf)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>has_rf <span class="ot">&lt;-</span> <span class="fu">requireNamespace</span>(<span class="st">&quot;randomForest&quot;</span>, <span class="at">quietly =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<div id="the-simulation-data" class="section level2">
+<h2>The simulation data</h2>
+<p><code>sim_grid</code> is the paper’s simulation dataset: a 30 x 30
+regular grid (900 cells, unit spacing) with a response <code>y1</code>
+and three spatially structured covariates <code>x1</code>,
+<code>x2</code>, <code>x3</code>.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">data</span>(sim_grid)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">head</span>(sim_grid)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt;            y1         x1           x2          x3 x y</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt; 1  0.68156075 -0.7437869 -0.390083041  0.01132319 1 1</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; 2  0.01164551  0.6994206  0.005002826 -0.70919621 2 1</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; 3 -0.26875636 -0.7354008  0.308990469  0.77466509 3 1</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; 4  0.28741097  1.2951746  0.366099153 -0.99436781 4 1</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; 5  1.51411986  1.2656499  2.273028010  0.94935635 5 1</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; 6  2.22486305 -0.2625940  1.066057112 -0.10049406 6 1</span></span></code></pre></div>
+</div>
+<div id="step-1-3-generate-the-gcf-variables" class="section level2">
+<h2>Step 1-3: generate the GCF variables</h2>
+<p><code>gcf_field()</code> maps the covariates to their GCF variables
+in three steps: spatial-pattern features (<code>gcf_psi()</code>, 11
+operators over buffer radii), neighbourhood-distribution features
+(<code>gcf_zx()</code>, buffer-wise quantiles), and a functional
+reduction (<code>gcf_reduce()</code>) that collapses the collinear
+buffer/quantile sweeps into interpretable functionals per variable and
+scale band. The paper’s simulation settings are buffers 2, 4, 6 (with
+the LISA normalization radius <code>d_norm = 4</code>), quantile levels
+0, 0.1, …, 1, a fine scale band {2} and a broad scale band {6}. No
+response is used at any point of the generation.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>field <span class="ot">&lt;-</span> <span class="fu">gcf_field</span>(sim_grid, <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;x&quot;</span>, <span class="st">&quot;y&quot;</span>),</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>                   <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">&quot;x1&quot;</span>, <span class="st">&quot;x2&quot;</span>, <span class="st">&quot;x3&quot;</span>),</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>                   <span class="at">buffers =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">4</span>, <span class="dv">6</span>), <span class="at">probs =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="fl">0.1</span>),</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>                   <span class="at">d_norm =</span> <span class="dv">4</span>, <span class="at">fine_band =</span> <span class="dv">2</span>, <span class="at">broad_band =</span> <span class="dv">6</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="fu">summary</span>(field)</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; Generalized covariate field (GCF)</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt;   locations:  900</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt;   variables:  3 (x1, x2, x3)</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt;   candidates: 93  [X (raw) 3 | P (pattern) 60 | D (context) 30]</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; Candidate variables per input variable and category:</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt;     </span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt;       X  P  D</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt;   x1  1 20 10</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt;   x2  1 20 10</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt;   x3  1 20 10</span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="co">#&gt; Reduction: d_mode = functional | fine band {2} | broad band {6}</span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="co">#&gt; Full sweeps kept in $psi (87 pattern features) and $zx (99 context-quantile features).</span></span></code></pre></div>
+<p>The candidate field holds the 3 raw covariates (category
+<code>X</code>) plus their GCF variables: band-averaged pattern
+operators (category <code>P</code>) and functionals of the neighbourhood
+quantile curve (category <code>D</code> – median, IQR, low tail, high
+tail, skew per scale band).</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">head</span>(field<span class="sc">$</span>meta, <span class="dv">10</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt;              feature group category operator scale</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt; 1                 x1    x1        X     &lt;NA&gt;  &lt;NA&gt;</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; 2      x1_D_fine_med    x1        D     &lt;NA&gt;  fine</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; 3      x1_D_fine_iqr    x1        D     &lt;NA&gt;  fine</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; 4   x1_D_fine_lotail    x1        D     &lt;NA&gt;  fine</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; 5   x1_D_fine_hitail    x1        D     &lt;NA&gt;  fine</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt; 6     x1_D_fine_skew    x1        D     &lt;NA&gt;  fine</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; 7     x1_D_broad_med    x1        D     &lt;NA&gt; broad</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; 8     x1_D_broad_iqr    x1        D     &lt;NA&gt; broad</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt; 9  x1_D_broad_lotail    x1        D     &lt;NA&gt; broad</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; 10 x1_D_broad_hitail    x1        D     &lt;NA&gt; broad</span></span></code></pre></div>
+</div>
+<div id="step-3b-select-stable-gcf-variables" class="section level2">
+<h2>Step 3b: select stable GCF variables</h2>
+<p><code>gcf_select()</code> screens the candidates with the rf_imp
+kernel: on each of <code>B</code> spatial-block subsamples it fits a
+random forest and keeps the top derived variables by impurity
+importance; a (variable x category) group qualifies when it fires in at
+least <code>pi_thr</code> of the subsamples, and contributes its most
+frequently kept member. The raw covariates are always kept. The spatial
+blocks come from <code>gcf_blocks()</code>; the paper’s simulation uses
+blocks of side 6 (twice the residual variogram range, as in the case
+study).</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>blocks <span class="ot">&lt;-</span> <span class="fu">gcf_blocks</span>(sim_grid[, <span class="fu">c</span>(<span class="st">&quot;x&quot;</span>, <span class="st">&quot;y&quot;</span>)], <span class="at">size =</span> <span class="dv">6</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>sel <span class="ot">&lt;-</span> <span class="fu">gcf_select</span>(field, <span class="at">y =</span> sim_grid<span class="sc">$</span>y1, <span class="at">blocks =</span> blocks, <span class="at">B =</span> <span class="dv">10</span>, <span class="at">seed =</span> <span class="dv">1</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>sel</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; GCF variable selection (rf_imp + spatial-block stability + group voting)</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt;   candidates: 93 | resamples B = 10 | pi threshold = 0.6</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt;   selected:   8 (3 forced raw + 5 derived)</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt;   forced:  x1, x2, x3</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;   derived: x1_D_fine_med, x2_D_fine_med, x2_P_gc, x3_D_fine_med, x3_P_gc</span></span></code></pre></div>
+<p>The selection frequencies show how consistently each derived variable
+is kept across the spatial subsamples:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">round</span>(<span class="fu">head</span>(sel<span class="sc">$</span>freq, <span class="dv">8</span>), <span class="dv">2</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">#&gt;    x1_D_fine_med x1_D_fine_lotail    x2_D_fine_med x2_D_fine_lotail </span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt;                1                1                1                1 </span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt; x2_D_fine_hitail          x2_P_gc    x3_D_fine_med x3_D_fine_lotail </span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt;                1                1                1                1</span></span></code></pre></div>
+</div>
+<div id="does-gcf-improve-prediction-a-cross-validated-comparison" class="section level2">
+<h2>Does GCF improve prediction? A cross-validated comparison</h2>
+<p>We now compare two feature sets with the paper’s adopted learner, a
+random forest from the external <strong>randomForest</strong>
+package:</p>
+<ul>
+<li><strong>base</strong>: the raw covariates <code>x1</code>,
+<code>x2</code>, <code>x3</code>;</li>
+<li><strong>GCF</strong>: the selected GCF variable set.</li>
+</ul>
+<p>Following the paper, the comparison uses five-fold cross-validation
+under two partitions: ordinary random folds, and spatial-block folds
+that assign whole blocks to folds (shuffled round-robin), which tests
+spatial transferability. To stay leakage-free, the GCF variable
+selection is re-run inside each training fold.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>folds_random <span class="ot">&lt;-</span> <span class="cf">function</span>(n, <span class="at">K =</span> <span class="dv">5</span>, <span class="at">seed =</span> <span class="dv">1</span>) {</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="fu">set.seed</span>(seed)</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="fu">sample</span>(<span class="fu">rep_len</span>(<span class="fu">seq_len</span>(K), n))</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>}</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>folds_blockwise <span class="ot">&lt;-</span> <span class="cf">function</span>(block_id, <span class="at">K =</span> <span class="dv">5</span>, <span class="at">seed =</span> <span class="dv">36</span>) {</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>  <span class="fu">set.seed</span>(seed)</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>  ub <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="fu">unique</span>(block_id))</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>  <span class="fu">as.integer</span>(stats<span class="sc">::</span><span class="fu">setNames</span>(<span class="fu">rep_len</span>(<span class="fu">seq_len</span>(K), <span class="fu">length</span>(ub)), ub)[block_id])</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>}</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a>fold_rd <span class="ot">&lt;-</span> <span class="fu">folds_random</span>(<span class="fu">nrow</span>(sim_grid))</span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a>fold_sp <span class="ot">&lt;-</span> <span class="fu">folds_blockwise</span>(blocks)</span></code></pre></div>
+<p>The comparison needs the <strong>randomForest</strong> package (a
+suggested, not required, dependency of gcf); the two chunks below are
+evaluated only when it is installed.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">library</span>(randomForest)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt; randomForest 4.7-1.2</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt; Type rfNews() to see new features/changes/bug fixes.</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>y <span class="ot">&lt;-</span> sim_grid<span class="sc">$</span>y1</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>X <span class="ot">&lt;-</span> field<span class="sc">$</span>candidates</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>x_cols <span class="ot">&lt;-</span> field<span class="sc">$</span>meta<span class="sc">$</span>feature[field<span class="sc">$</span>meta<span class="sc">$</span>category <span class="sc">==</span> <span class="st">&quot;X&quot;</span>]</span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a>cv_rf <span class="ot">&lt;-</span> <span class="cf">function</span>(fold, cols_by_fold, <span class="at">ntree =</span> <span class="dv">300</span>) {</span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a>  ks <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(fold))</span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a>  r2 <span class="ot">&lt;-</span> rmse <span class="ot">&lt;-</span> <span class="fu">numeric</span>(<span class="fu">length</span>(ks))</span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(ks)) {</span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a>    te <span class="ot">&lt;-</span> <span class="fu">which</span>(fold <span class="sc">==</span> ks[i]); tr <span class="ot">&lt;-</span> <span class="fu">which</span>(fold <span class="sc">!=</span> ks[i])</span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a>    cols <span class="ot">&lt;-</span> cols_by_fold[[i]]</span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a>    <span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a>    fit <span class="ot">&lt;-</span> <span class="fu">randomForest</span>(X[tr, cols, <span class="at">drop =</span> <span class="cn">FALSE</span>], y[tr], <span class="at">ntree =</span> ntree)</span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a>    p <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">predict</span>(fit, X[te, cols, <span class="at">drop =</span> <span class="cn">FALSE</span>]))</span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a>    r2[i] <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">-</span> <span class="fu">sum</span>((y[te] <span class="sc">-</span> p)<span class="sc">^</span><span class="dv">2</span>) <span class="sc">/</span> <span class="fu">sum</span>((y[te] <span class="sc">-</span> <span class="fu">mean</span>(y[te]))<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a>    rmse[i] <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">mean</span>((y[te] <span class="sc">-</span> p)<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a>  }</span>
+<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">R2 =</span> <span class="fu">mean</span>(r2), <span class="at">RMSE =</span> <span class="fu">mean</span>(rmse))</span>
+<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a>}</span>
+<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a></span>
+<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="co"># per-fold GCF selection on the training part of each fold (leakage-free)</span></span>
+<span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a>select_by_fold <span class="ot">&lt;-</span> <span class="cf">function</span>(fold) {</span>
+<span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a>  <span class="fu">lapply</span>(<span class="fu">sort</span>(<span class="fu">unique</span>(fold)), <span class="cf">function</span>(k) {</span>
+<span id="cb8-27"><a href="#cb8-27" tabindex="-1"></a>    <span class="fu">gcf_select</span>(field, <span class="at">y =</span> y, <span class="at">blocks =</span> blocks,</span>
+<span id="cb8-28"><a href="#cb8-28" tabindex="-1"></a>               <span class="at">train =</span> <span class="fu">which</span>(fold <span class="sc">!=</span> k), <span class="at">B =</span> <span class="dv">10</span>, <span class="at">seed =</span> <span class="dv">1</span>)<span class="sc">$</span>selected</span>
+<span id="cb8-29"><a href="#cb8-29" tabindex="-1"></a>  })</span>
+<span id="cb8-30"><a href="#cb8-30" tabindex="-1"></a>}</span>
+<span id="cb8-31"><a href="#cb8-31" tabindex="-1"></a></span>
+<span id="cb8-32"><a href="#cb8-32" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(</span>
+<span id="cb8-33"><a href="#cb8-33" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">random =</span> fold_rd, <span class="at">spatial =</span> fold_sp), <span class="cf">function</span>(fold) {</span>
+<span id="cb8-34"><a href="#cb8-34" tabindex="-1"></a>    S <span class="ot">&lt;-</span> <span class="fu">select_by_fold</span>(fold)</span>
+<span id="cb8-35"><a href="#cb8-35" tabindex="-1"></a>    base <span class="ot">&lt;-</span> <span class="fu">cv_rf</span>(fold, <span class="fu">rep</span>(<span class="fu">list</span>(x_cols), <span class="dv">5</span>))</span>
+<span id="cb8-36"><a href="#cb8-36" tabindex="-1"></a>    gcfv <span class="ot">&lt;-</span> <span class="fu">cv_rf</span>(fold, S)</span>
+<span id="cb8-37"><a href="#cb8-37" tabindex="-1"></a>    <span class="fu">data.frame</span>(<span class="at">feature_set =</span> <span class="fu">c</span>(<span class="st">&quot;base&quot;</span>, <span class="st">&quot;GCF&quot;</span>),</span>
+<span id="cb8-38"><a href="#cb8-38" tabindex="-1"></a>               <span class="at">R2 =</span> <span class="fu">c</span>(base[<span class="st">&quot;R2&quot;</span>], gcfv[<span class="st">&quot;R2&quot;</span>]),</span>
+<span id="cb8-39"><a href="#cb8-39" tabindex="-1"></a>               <span class="at">RMSE =</span> <span class="fu">c</span>(base[<span class="st">&quot;RMSE&quot;</span>], gcfv[<span class="st">&quot;RMSE&quot;</span>]))</span>
+<span id="cb8-40"><a href="#cb8-40" tabindex="-1"></a>  }))</span>
+<span id="cb8-41"><a href="#cb8-41" tabindex="-1"></a>results<span class="sc">$</span>partition <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;random&quot;</span>, <span class="st">&quot;spatial&quot;</span>), <span class="at">each =</span> <span class="dv">2</span>)</span>
+<span id="cb8-42"><a href="#cb8-42" tabindex="-1"></a><span class="fu">rownames</span>(results) <span class="ot">&lt;-</span> <span class="cn">NULL</span></span>
+<span id="cb8-43"><a href="#cb8-43" tabindex="-1"></a>results[, <span class="fu">c</span>(<span class="st">&quot;partition&quot;</span>, <span class="st">&quot;feature_set&quot;</span>, <span class="st">&quot;R2&quot;</span>, <span class="st">&quot;RMSE&quot;</span>)]</span>
+<span id="cb8-44"><a href="#cb8-44" tabindex="-1"></a><span class="co">#&gt;   partition feature_set        R2      RMSE</span></span>
+<span id="cb8-45"><a href="#cb8-45" tabindex="-1"></a><span class="co">#&gt; 1    random        base 0.4570685 0.7402535</span></span>
+<span id="cb8-46"><a href="#cb8-46" tabindex="-1"></a><span class="co">#&gt; 2    random         GCF 0.6918846 0.5573999</span></span>
+<span id="cb8-47"><a href="#cb8-47" tabindex="-1"></a><span class="co">#&gt; 3   spatial        base 0.4176858 0.7419110</span></span>
+<span id="cb8-48"><a href="#cb8-48" tabindex="-1"></a><span class="co">#&gt; 4   spatial         GCF 0.6568244 0.5606579</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>imp <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(<span class="fu">split</span>(results, results<span class="sc">$</span>partition), <span class="cf">function</span>(d) {</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="fu">data.frame</span>(<span class="at">partition =</span> d<span class="sc">$</span>partition[<span class="dv">1</span>],</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>             <span class="at">R2_gain_pct =</span> <span class="dv">100</span> <span class="sc">*</span> (d<span class="sc">$</span>R2[<span class="dv">2</span>] <span class="sc">-</span> d<span class="sc">$</span>R2[<span class="dv">1</span>]) <span class="sc">/</span> d<span class="sc">$</span>R2[<span class="dv">1</span>],</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>             <span class="at">RMSE_drop_pct =</span> <span class="dv">100</span> <span class="sc">*</span> (d<span class="sc">$</span>RMSE[<span class="dv">1</span>] <span class="sc">-</span> d<span class="sc">$</span>RMSE[<span class="dv">2</span>]) <span class="sc">/</span> d<span class="sc">$</span>RMSE[<span class="dv">1</span>])</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>}))</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="fu">round</span>(imp[, <span class="sc">-</span><span class="dv">1</span>], <span class="dv">1</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt;         R2_gain_pct RMSE_drop_pct</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt; random         51.4          24.7</span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt; spatial        57.3          24.4</span></span></code></pre></div>
+<p>The GCF variables raise the cross-validated R-squared and lower the
+RMSE under both partitions, with the larger gain under the spatial-block
+partition – the setting that matters for predicting into unsampled
+areas. This mirrors the paper’s simulation result (its Table 2, computed
+with B = 80, seven learners, and 500-tree forests).</p>
+</div>
+<div id="the-case-study-data" class="section level2">
+<h2>The case study data</h2>
+<p>The package also ships the paper’s case study, <code>bio_grid</code>:
+vascular plant species richness over the Southwest Australian Floristic
+Region on a 10-km grid (6229 cells, 958 of them observed) with twelve
+environmental covariates. The paper generates the GCF variables on the
+projected kilometre coordinates with buffers 20–100 km, 21 quantile
+levels, scale bands {20, 30} and {90, 100} km, and selects with blocks
+of side 132 km:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">data</span>(bio_grid)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>obs <span class="ot">&lt;-</span> bio_grid[bio_grid<span class="sc">$</span>observed, ]</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>covs <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;Elevation&quot;</span>, <span class="st">&quot;Slope&quot;</span>, <span class="st">&quot;Precipitation&quot;</span>, <span class="st">&quot;Radiation&quot;</span>, <span class="st">&quot;DistWater&quot;</span>,</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>          <span class="st">&quot;DistBuilt&quot;</span>, <span class="st">&quot;SoilN&quot;</span>, <span class="st">&quot;SoilC&quot;</span>, <span class="st">&quot;SoilClay&quot;</span>, <span class="st">&quot;SoilDepth&quot;</span>, <span class="st">&quot;SoilpH&quot;</span>,</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>          <span class="st">&quot;SoilBD&quot;</span>)</span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>field <span class="ot">&lt;-</span> <span class="fu">gcf_field</span>(obs, <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">&quot;xkm&quot;</span>, <span class="st">&quot;ykm&quot;</span>), <span class="at">vars =</span> covs,</span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>                   <span class="at">buffers =</span> <span class="fu">seq</span>(<span class="dv">20</span>, <span class="dv">100</span>, <span class="dv">10</span>), <span class="at">probs =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="fl">0.05</span>),</span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>                   <span class="at">d_norm =</span> <span class="dv">100</span>, <span class="at">fine_band =</span> <span class="fu">c</span>(<span class="dv">20</span>, <span class="dv">30</span>),</span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a>                   <span class="at">broad_band =</span> <span class="fu">c</span>(<span class="dv">90</span>, <span class="dv">100</span>))</span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a>blocks <span class="ot">&lt;-</span> <span class="fu">gcf_blocks</span>(obs[, <span class="fu">c</span>(<span class="st">&quot;xkm&quot;</span>, <span class="st">&quot;ykm&quot;</span>)], <span class="at">size =</span> <span class="dv">132</span>)</span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a>sel <span class="ot">&lt;-</span> <span class="fu">gcf_select</span>(field, <span class="at">y =</span> obs<span class="sc">$</span>richness, <span class="at">blocks =</span> blocks, <span class="at">B =</span> <span class="dv">80</span>)</span></code></pre></div>
+<p>(Not run here: the full case-study selection takes several
+minutes.)</p>
+</div>
+<div id="reference" class="section level2">
+<h2>Reference</h2>
+<p>Song, Y. (2026). Generalized covariate field (GCF): spatial-pattern
+and neighbourhood-distribution feature expansion improves geospatial
+prediction. <em>International Journal of Geographical Information
+Science</em>, 40, 1–29. <a href="https://doi.org/10.1080/13658816.2026.2729719" class="uri">https://doi.org/10.1080/13658816.2026.2729719</a></p>
+<p>The package source is available from GitHub: <a href="https://github.com/yongzesong/gcf" class="uri">https://github.com/yongzesong/gcf</a>.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

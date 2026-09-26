@@ -1,0 +1,20 @@
+citHeader("To cite the gcf package or the GCF method in publications, please use:")
+
+bibentry(
+  bibtype = "Article",
+  title = paste("Generalized covariate field (GCF): spatial-pattern and",
+                "neighbourhood-distribution feature expansion improves",
+                "geospatial prediction"),
+  author = person(given = "Yongze", family = "Song"),
+  journal = "International Journal of Geographical Information Science",
+  year = "2026",
+  volume = "40",
+  pages = "1--29",
+  doi = "10.1080/13658816.2026.2729719",
+  textVersion = paste("Song, Y. (2026). Generalized covariate field (GCF):",
+                      "spatial-pattern and neighbourhood-distribution feature",
+                      "expansion improves geospatial prediction.",
+                      "International Journal of Geographical Information",
+                      "Science, 40, 1-29.",
+                      "https://doi.org/10.1080/13658816.2026.2729719")
+)

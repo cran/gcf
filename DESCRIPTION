@@ -1,0 +1,41 @@
+Package: gcf
+Title: Generalized Covariate Field
+Version: 0.1.0
+Authors@R: 
+    person(given = "Yongze", family = "Song",
+           email = "yongze.song@outlook.com",
+           role = c("aut", "cre", "cph"),
+           comment = c(ORCID = "0000-0003-3420-9622"))
+Description: Generates generalized covariate field (GCF) variables from
+    spatial covariates observed at projected coordinates, and selects a
+    stable subset of them for geospatial prediction. For each input
+    covariate the method builds spatial-pattern features (local indicator
+    of spatial association, local Geary's c, log local variance, rank
+    quantile entropy, geocomplexity, log scale variance, local variogram
+    exponent, and signed z-score and median absolute deviation outlier
+    strengths over a series of buffer radii) and neighbourhood-distribution
+    features (buffer-wise quantiles of the covariate values surrounding
+    each location), reduces the buffer and quantile sweeps to a compact set
+    of interpretable functional summaries, and selects variables by random
+    forest importance combined with spatial-block stability resampling and
+    group voting. The GCF method is positioned as prediction-oriented
+    feature construction: its output feeds any downstream regression
+    learner. Methods are described in Song (2026)
+    <doi:10.1080/13658816.2026.2729719>.
+License: GPL-3
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Imports: geocomplexity, ranger, sf, spdep, stats, utils
+Suggests: knitr, randomForest, rmarkdown, testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+LazyData: true
+LazyDataCompression: xz
+Config/roxygen2/version: 8.1.0
+NeedsCompilation: no
+Packaged: 2026-09-15 07:02:05 UTC; 268222h
+Author: Yongze Song [aut, cre, cph] (ORCID:
+    <https://orcid.org/0000-0003-3420-9622>)
+Maintainer: Yongze Song <yongze.song@outlook.com>
+Repository: CRAN
+Date/Publication: 2026-09-26 16:10:02 UTC

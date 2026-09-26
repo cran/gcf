@@ -1,0 +1,235 @@
+---
+title: "The GCF workflow: from spatial variables to better predictions"
+author: "Yongze Song"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{The GCF workflow: from spatial variables to better predictions}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4
+)
+```
+
+The generalized covariate field (GCF) method expands each spatial covariate
+into two complementary families of features -- spatial-pattern features and
+neighbourhood-distribution features -- and selects a stable subset of them
+for geospatial prediction. GCF is prediction-oriented feature construction:
+it enriches the covariate space rather than the model structure, and the
+selected variables feed any downstream regression learner.
+
+This vignette walks through the full workflow on the paper's simulation data:
+
+1. generate the GCF variables with `gcf_field()`;
+2. select a stable subset with `gcf_select()`;
+3. compare a machine-learning model fitted on the raw covariates against the
+   same model fitted on the GCF variables, under both random and
+   spatial-block cross-validation, using the external **randomForest**
+   package (the learner adopted in the paper).
+
+To keep the build time of this vignette short, the selection uses B = 10
+stability resamples and reduced tree counts; the paper's full settings are
+B = 80 resamples with 200-tree importance kernels and 500-tree final
+forests, and give the same qualitative conclusions.
+
+```{r setup}
+library(gcf)
+has_rf <- requireNamespace("randomForest", quietly = TRUE)
+```
+
+## The simulation data
+
+`sim_grid` is the paper's simulation dataset: a 30 x 30 regular grid (900
+cells, unit spacing) with a response `y1` and three spatially structured
+covariates `x1`, `x2`, `x3`.
+
+```{r data}
+data(sim_grid)
+head(sim_grid)
+```
+
+## Step 1-3: generate the GCF variables
+
+`gcf_field()` maps the covariates to their GCF variables in three steps:
+spatial-pattern features (`gcf_psi()`, 11 operators over buffer radii),
+neighbourhood-distribution features (`gcf_zx()`, buffer-wise quantiles), and
+a functional reduction (`gcf_reduce()`) that collapses the collinear
+buffer/quantile sweeps into interpretable functionals per variable and scale
+band. The paper's simulation settings are buffers 2, 4, 6 (with the LISA
+normalization radius `d_norm = 4`), quantile levels 0, 0.1, ..., 1, a fine
+scale band {2} and a broad scale band {6}. No response is used at any point
+of the generation.
+
+```{r field}
+field <- gcf_field(sim_grid, coords = c("x", "y"),
+                   vars = c("x1", "x2", "x3"),
+                   buffers = c(2, 4, 6), probs = seq(0, 1, 0.1),
+                   d_norm = 4, fine_band = 2, broad_band = 6)
+summary(field)
+```
+
+The candidate field holds the 3 raw covariates (category `X`) plus their GCF
+variables: band-averaged pattern operators (category `P`) and functionals of
+the neighbourhood quantile curve (category `D` -- median, IQR, low tail,
+high tail, skew per scale band).
+
+```{r meta}
+head(field$meta, 10)
+```
+
+## Step 3b: select stable GCF variables
+
+`gcf_select()` screens the candidates with the rf_imp kernel: on each of `B`
+spatial-block subsamples it fits a random forest and keeps the top derived
+variables by impurity importance; a (variable x category) group qualifies
+when it fires in at least `pi_thr` of the subsamples, and contributes its
+most frequently kept member. The raw covariates are always kept. The spatial
+blocks come from `gcf_blocks()`; the paper's simulation uses blocks of side
+6 (twice the residual variogram range, as in the case study).
+
+```{r select}
+blocks <- gcf_blocks(sim_grid[, c("x", "y")], size = 6)
+sel <- gcf_select(field, y = sim_grid$y1, blocks = blocks, B = 10, seed = 1)
+sel
+```
+
+The selection frequencies show how consistently each derived variable is
+kept across the spatial subsamples:
+
+```{r freq}
+round(head(sel$freq, 8), 2)
+```
+
+## Does GCF improve prediction? A cross-validated comparison
+
+We now compare two feature sets with the paper's adopted learner, a random
+forest from the external **randomForest** package:
+
+- **base**: the raw covariates `x1`, `x2`, `x3`;
+- **GCF**: the selected GCF variable set.
+
+Following the paper, the comparison uses five-fold cross-validation under
+two partitions: ordinary random folds, and spatial-block folds that assign
+whole blocks to folds (shuffled round-robin), which tests spatial
+transferability. To stay leakage-free, the GCF variable selection is re-run
+inside each training fold.
+
+```{r folds}
+folds_random <- function(n, K = 5, seed = 1) {
+  set.seed(seed)
+  sample(rep_len(seq_len(K), n))
+}
+folds_blockwise <- function(block_id, K = 5, seed = 36) {
+  set.seed(seed)
+  ub <- sample(unique(block_id))
+  as.integer(stats::setNames(rep_len(seq_len(K), length(ub)), ub)[block_id])
+}
+fold_rd <- folds_random(nrow(sim_grid))
+fold_sp <- folds_blockwise(blocks)
+```
+
+The comparison needs the **randomForest** package (a suggested, not
+required, dependency of gcf); the two chunks below are evaluated only when
+it is installed.
+
+```{r cv, eval = has_rf}
+library(randomForest)
+
+y <- sim_grid$y1
+X <- field$candidates
+x_cols <- field$meta$feature[field$meta$category == "X"]
+
+cv_rf <- function(fold, cols_by_fold, ntree = 300) {
+  ks <- sort(unique(fold))
+  r2 <- rmse <- numeric(length(ks))
+  for (i in seq_along(ks)) {
+    te <- which(fold == ks[i]); tr <- which(fold != ks[i])
+    cols <- cols_by_fold[[i]]
+    set.seed(1)
+    fit <- randomForest(X[tr, cols, drop = FALSE], y[tr], ntree = ntree)
+    p <- as.numeric(predict(fit, X[te, cols, drop = FALSE]))
+    r2[i] <- 1 - sum((y[te] - p)^2) / sum((y[te] - mean(y[te]))^2)
+    rmse[i] <- sqrt(mean((y[te] - p)^2))
+  }
+  c(R2 = mean(r2), RMSE = mean(rmse))
+}
+
+# per-fold GCF selection on the training part of each fold (leakage-free)
+select_by_fold <- function(fold) {
+  lapply(sort(unique(fold)), function(k) {
+    gcf_select(field, y = y, blocks = blocks,
+               train = which(fold != k), B = 10, seed = 1)$selected
+  })
+}
+
+results <- do.call(rbind, lapply(
+  list(random = fold_rd, spatial = fold_sp), function(fold) {
+    S <- select_by_fold(fold)
+    base <- cv_rf(fold, rep(list(x_cols), 5))
+    gcfv <- cv_rf(fold, S)
+    data.frame(feature_set = c("base", "GCF"),
+               R2 = c(base["R2"], gcfv["R2"]),
+               RMSE = c(base["RMSE"], gcfv["RMSE"]))
+  }))
+results$partition <- rep(c("random", "spatial"), each = 2)
+rownames(results) <- NULL
+results[, c("partition", "feature_set", "R2", "RMSE")]
+```
+
+```{r improvement, eval = has_rf}
+imp <- do.call(rbind, lapply(split(results, results$partition), function(d) {
+  data.frame(partition = d$partition[1],
+             R2_gain_pct = 100 * (d$R2[2] - d$R2[1]) / d$R2[1],
+             RMSE_drop_pct = 100 * (d$RMSE[1] - d$RMSE[2]) / d$RMSE[1])
+}))
+round(imp[, -1], 1)
+```
+
+The GCF variables raise the cross-validated R-squared and lower the RMSE
+under both partitions, with the larger gain under the spatial-block
+partition -- the setting that matters for predicting into unsampled areas.
+This mirrors the paper's simulation result (its Table 2, computed with
+B = 80, seven learners, and 500-tree forests).
+
+## The case study data
+
+The package also ships the paper's case study, `bio_grid`: vascular plant
+species richness over the Southwest Australian Floristic Region on a 10-km
+grid (6229 cells, 958 of them observed) with twelve environmental
+covariates. The paper generates the GCF variables on the projected
+kilometre coordinates with buffers 20--100 km, 21 quantile levels, scale
+bands {20, 30} and {90, 100} km, and selects with blocks of side 132 km:
+
+```{r case, eval = FALSE}
+data(bio_grid)
+obs <- bio_grid[bio_grid$observed, ]
+covs <- c("Elevation", "Slope", "Precipitation", "Radiation", "DistWater",
+          "DistBuilt", "SoilN", "SoilC", "SoilClay", "SoilDepth", "SoilpH",
+          "SoilBD")
+field <- gcf_field(obs, coords = c("xkm", "ykm"), vars = covs,
+                   buffers = seq(20, 100, 10), probs = seq(0, 1, 0.05),
+                   d_norm = 100, fine_band = c(20, 30),
+                   broad_band = c(90, 100))
+blocks <- gcf_blocks(obs[, c("xkm", "ykm")], size = 132)
+sel <- gcf_select(field, y = obs$richness, blocks = blocks, B = 80)
+```
+
+(Not run here: the full case-study selection takes several minutes.)
+
+## Reference
+
+Song, Y. (2026). Generalized covariate field (GCF): spatial-pattern and
+neighbourhood-distribution feature expansion improves geospatial prediction.
+*International Journal of Geographical Information Science*, 40, 1--29.
+<https://doi.org/10.1080/13658816.2026.2729719>
+
+The package source is available from GitHub:
+<https://github.com/yongzesong/gcf>.
