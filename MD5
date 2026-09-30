@@ -1,11 +1,11 @@
-ac81269b67c4f958888179e7bebe834a *DESCRIPTION
+05484edc6ecbb0235e00f4343d207a93 *DESCRIPTION
 7893cd6a827bf40d31a4e5f3cc16b52c *NAMESPACE
-5afe24c3b07c606d84b10deb26be8afd *NEWS.md
+803e46025f10e06bf360680edf1a1e76 *NEWS.md
 cdf6f6b85d2c57ba9b5f77bd149dd7d0 *R/data.R
 aac12bffcbe53581e74ed6d12df4692e *R/field.R
 ee673413ec7c5c8a99f8d5ac95648b59 *R/gcf-package.R
 dd992c40d7184d054b702fca5775a3d1 *R/imports.R
-f426c045e40505df952fac293ed562a0 *R/psi.R
+2539fc795ec0be724d31ab442820625c *R/psi.R
 cd214fb4d28c0ddabc701969cbcd6757 *R/reduce.R
 46d5914180546c8c85692f3683296a2e *R/select.R
 0ac7cf3ad11f80b8cb0321c840172b7b *R/utils.R
@@ -31,7 +31,7 @@ bb4bb1abb4d1da8821594068ad321e27 *man/gcf_reduce.Rd
 e6900cec92fa63d8105d3ef7e7957547 *tests/testthat.R
 dd047527c8de8339305d83be11b2832b *tests/testthat/helper-fixture.R
 9364c36b677d95d0d1bc1254f7c1c2da *tests/testthat/helper-reference.R
-0f8c964d547183f89d2b572a93538fc6 *tests/testthat/test-features.R
+111aebd3368e47097e3643b0d1bb8084 *tests/testthat/test-features.R
 d63b902f84e982c5104d360e0075bf9e *tests/testthat/test-input.R
 63842019b04da8a8d570f1e392640671 *tests/testthat/test-select.R
 622b2b08f7ffd739b0600c8ad797b948 *vignettes/gcf-workflow.Rmd

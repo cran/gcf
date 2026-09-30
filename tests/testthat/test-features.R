@@ -19,6 +19,22 @@ test_that("psi features match the original engine", {
   expect_identical(psi$map$feature_name, names(psi$features))
 })
 
+test_that("geocomplexity neighbours break distance ties by row index", {
+  # On the 7x7 grid most locations tie at the 23rd-neighbour distance; the
+  # neighbour sets must not depend on which kNN backend spdep picks (dbscan
+  # installed or not), so they must equal a stable brute-force ordering.
+  fx <- gcf_test_fixture()
+  plan <- suppressWarnings(psi_geocomplexity_plan(fx[, c("x", "y")], k = 23))
+  D <- as.matrix(stats::dist(fx[, c("x", "y")]))
+  W <- t(vapply(seq_len(nrow(D)), function(i) {
+    o <- order(D[i, ], seq_len(ncol(D)))
+    w <- numeric(ncol(D))
+    w[o[o != i][seq_len(23)]] <- 1 / 23
+    w
+  }, numeric(ncol(D))))
+  expect_equal(matrix(plan$weights, nrow(D)), W, tolerance = 1e-15)
+})
+
 test_that("Zx features match the original engine", {
   fx <- gcf_test_fixture()
   zx <- gcf_zx(fx, coords = c("x", "y"), vars = c("v1", "v2"),

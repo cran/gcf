@@ -187,13 +187,19 @@ psi_outlier_mad <- function(x, nb_local, theta = 2) {
   data.frame(poutlier_mad = pos, noutlier_mad = neg)
 }
 
-# Coordinate-only geocomplexity plan (verbatim).
+# Coordinate-only geocomplexity plan (verbatim, except use_kd_tree = FALSE).
+# On gridded data many locations tie at the k-th neighbour distance, and
+# spdep::knearneigh() breaks those ties differently depending on whether the
+# optional dbscan package is installed (kd-tree search) or not (spdep's own
+# brute-force search). Forcing the brute-force search makes the neighbour sets
+# independent of the installed packages and reproduces the paper, whose
+# results were computed with it.
 psi_geocomplexity_plan <- function(coords, k = 23) {
   coords <- gcf_as_coords(coords)
   k <- min(as.integer(k), nrow(coords) - 1L)
   if (k < 1L) return(list(k = 0L))
   sf_base <- sf::st_as_sf(coords, coords = c("x", "y"), crs = sf::NA_crs_)
-  nb <- spdep::knn2nb(spdep::knearneigh(sf_base, k = k))
+  nb <- spdep::knn2nb(spdep::knearneigh(sf_base, k = k, use_kd_tree = FALSE))
   weights <- spdep::nb2mat(nb, style = "W")
   list(geometry = sf::st_geometry(sf_base), crs = sf::st_crs(sf_base),
        weights = weights, k = k)

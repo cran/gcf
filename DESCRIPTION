@@ -1,6 +1,6 @@
 Package: gcf
 Title: Generalized Covariate Field
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: 
     person(given = "Yongze", family = "Song",
            email = "yongze.song@outlook.com",
@@ -25,7 +25,7 @@ Description: Generates generalized covariate field (GCF) variables from
 License: GPL-3
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
-Imports: geocomplexity, ranger, sf, spdep, stats, utils
+Imports: geocomplexity, ranger, sf, spdep (>= 1.1-7), stats, utils
 Suggests: knitr, randomForest, rmarkdown, testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3
@@ -33,9 +33,9 @@ LazyData: true
 LazyDataCompression: xz
 Config/roxygen2/version: 8.1.0
 NeedsCompilation: no
-Packaged: 2026-09-15 07:02:05 UTC; 268222h
+Packaged: 2026-09-30 14:05:22 UTC; 268222h
 Author: Yongze Song [aut, cre, cph] (ORCID:
     <https://orcid.org/0000-0003-3420-9622>)
 Maintainer: Yongze Song <yongze.song@outlook.com>
 Repository: CRAN
-Date/Publication: 2026-09-26 16:10:02 UTC
+Date/Publication: 2026-09-30 21:40:02 UTC
